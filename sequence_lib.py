@@ -211,10 +211,10 @@ def impose_struct(pri_seq,str_seq):
     return out_pri, out_str
 
 def p_distance(seq1,seq2):
+    assert len(seq1) == len(seq2)
     d = 0
     count = len(seq1)
-    for i,x in enumerate(seq1):
-        y = seq2[i]
+    for x,y in zip(seq1,seq2):
         if x == '-' and y == '-':
             count -= 1
         elif x != y:

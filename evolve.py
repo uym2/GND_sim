@@ -28,11 +28,9 @@ def normalize(v):
     s = sum(v)
     return [x/s for x in v]
 
-def randomize_rates(n_gene,shape=6):    
-    alpha = gamma(shape,1/shape,n_gene)
-    #scale = max(alpha)
-    #return normalize([x/scale for x in alpha])
-    return normalize(alpha)
+def randomize_rates(n_gene,alpha):    
+    rates = gamma(alpha,1/alpha,n_gene)
+    return normalize(rates)
 
 def evolve(gseqs,g_weights,n_mus,M):
     # n_mus: number of mutations
@@ -68,15 +66,17 @@ def extract_locations(gnames):
     
     return g_locations
 
-def assign_weights(gseqs,g_locations):
+def assign_weights(gseqs,g_locations,alpha):
 # randomly assign a (relative) mutation rate for each gene
 # the rate multipliers are drawn from a gamma distribution
 # all the loci in each gene are assigned the rate multipliers 
 # of that gene as their weights; instead for the start and 
 # end codons and the overlapping regions between the genes 
 # are assigned weights 0 (i.e. not allowed to mutate)
+# alpha control the variance of the rate (i.e. shape of the
+# gamma distribution) 
     n_genes = len(gseqs)
-    g_rates = randomize_rates(n_genes)
+    g_rates = randomize_rates(n_genes,alpha)
     g_weights = []
     prv_node, prv_start, prv_end = (None,None,None)
 
@@ -167,20 +167,22 @@ def compute_n_mus(n_sites,p,p_g=0.95):
 from sys import argv
 from os import mkdir,getcwd,rmdir,listdir
 
+p = float(argv[1])
+alpha = float(argv[2])
+
 M = read_blosum62()
 names,seqs = read_fasta("AG-359-G18_contigs.fasta") # full genome
 gnames,gseqs = read_fasta("AG-359-G18_contigs_genes.faa") # genes
 g_locations = extract_locations(gnames)
-g_weights = assign_weights(gseqs,g_locations)
+g_weights = assign_weights(gseqs,g_locations,alpha)
 
-p = float(argv[1])
 n_sites = sum(len(s) for s in seqs) 
 n_mus = compute_n_mus(n_sites,p)
 
 evolve(gseqs,g_weights,n_mus,M)
 mutated_names, mutated_seqs = stitch_back(names,seqs,g_locations,gseqs)
 
-outdir = "mutated_" + str(round(p*100)).rjust(3,'0')
+outdir = "mutated_a" + str(int(alpha)) + "_p" + str(round(p*100)).rjust(3,'0')
 mkdir(outdir)
 write_fasta(outdir+"/mutated_genes.faa",gnames,gseqs)
 write_fasta(outdir+"/mutated.fasta",mutated_names,mutated_seqs)
