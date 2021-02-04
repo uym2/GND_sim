@@ -5,3 +5,4 @@
   * Avoid adding/removing start/end codons: don't allow the start and end condons to mutate
   * Avoid interrupting the reading frame: when encounter a pair of genes that overlap each other (possibly with different reading frames), don't mutate the overlapping region.
   * Intergenic regions: take up less than 5% of the genome. We don't mutate them.
+  * Back translation: when there are multiple codons for an amino acid, choose the one that is closest to that of the original genome (i.e. minize the number of mutations).
