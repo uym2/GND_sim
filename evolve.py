@@ -121,20 +121,29 @@ def reverse_complement(seq):
 
 def back_translate(peptide,ref,rev):
 # back translation is not unique
-# here we choose the back translation
-# that is closest to a reference
+# here we do the following:
+# if a codon exactly matches the original, 
+# then use it. Otherwise, randomly choose a codon 
+# with the weight is the probability 
+# that the reference dna mutated into that codon 
+# eg: prob(ACT --> ACG) = 1/4*(3/4)**2; prob(ACT --> AAG) = (1/4)**2*(3/4)
     if rev:
         ref = reverse_complement(ref)
     codon = read_codon_table()
     dna = ''
     for i,aa in enumerate(peptide):
         ref_i = ref[3*i:3*i+3]
-        dmin = 4
+        w_total = 0
         translated = None
         for tr in codon[aa]:
             d = sum(a != b for a,b in zip(tr,ref_i))
-            if d < dmin:
-                dmin = d
+            if d == 0:
+                translated = tr
+                break
+            #w = (0.25**d)*(0.75**(3-d))
+            w = 4-d
+            w_total += w
+            if random() <= w/w_total: # choose this codon with probability w/w_total
                 translated = tr
         dna += translated
     D = sum(x!=y for x,y in zip(dna,ref))/len(dna)
@@ -162,12 +171,13 @@ def compute_n_mus(n_sites,p,p_g=0.95):
 # n_mus is the number of aa mutations
 # p is the proportion of DNA mutations in the genome
 # p_g is the proportion of genes to the full genome
-    return round(n_sites*p*5/8)
+    nt2aa = 1/2
+    return round(n_sites*p*nt2aa)
 
 from sys import argv
 from os import mkdir,getcwd,rmdir,listdir
 
-p = float(argv[1])
+p = float(argv[1]) # p is the proportion of aa mutations (i.e. 1-AAI)
 alpha = float(argv[2])
 
 M = read_blosum62()
@@ -176,13 +186,15 @@ gnames,gseqs = read_fasta("AG-359-G18_contigs_genes.faa") # genes
 g_locations = extract_locations(gnames)
 g_weights = assign_weights(gseqs,g_locations,alpha)
 
-n_sites = sum(len(s) for s in seqs) 
-n_mus = compute_n_mus(n_sites,p)
+#n_sites = sum(len(s) for s in seqs) 
+#n_mus = compute_n_mus(n_sites,p)
+n_sites = sum(len(s) for s in gseqs) 
+n_mus = round(n_sites*p)
 
 evolve(gseqs,g_weights,n_mus,M)
 mutated_names, mutated_seqs = stitch_back(names,seqs,g_locations,gseqs)
 
-outdir = "mutated_a" + str(int(alpha)) + "_p" + str(round(p*100)).rjust(3,'0')
+outdir = "mutated_a" + str(int(alpha)) + "_aad" + str(round(p*100)).rjust(3,'0')
 mkdir(outdir)
 write_fasta(outdir+"/mutated_genes.faa",gnames,gseqs)
 write_fasta(outdir+"/mutated.fasta",mutated_names,mutated_seqs)
