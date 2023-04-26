@@ -1,5 +1,11 @@
 # GND_sim
-  * Used a gamma distribution (with an alpha parameter) to draw the relative rate for each gene. In our experiments, we used gamma = 22 which was learned from the real data. 
+  * Used a gamma distribution (with an alpha parameter) to draw the relative rate for each gene. 
+   * In our experiments, we used gamma = 22 which was learned from the real data. It's computed as follows
+     ~~~R
+     aai = read.csv("GORGv1_16SSAGs_aai_summary.csv.xz",sep="\t")
+     # Estimate Alpha for genome simulations
+     summary(with(aai, 1/( (Std.AAI/100)/(1-Mean.AAI/100) )^2 ))
+     ~~~
   * Given a desired AAD level p and genome length L, randomly select nmus = p\*L amino acids (i.e. sampling without replacement) to mutate using the BLOSUM62 model; each amino acid is selected with a probability determined by the rate of the gene it belongs to. 
   * Avoid adding/removing start/end codons: don't allow the start and end condons to mutate
   * Avoid interrupting the reading frame: when encounter a pair of genes that overlap each other (possibly with different reading frames), don't mutate the overlapping region.
